@@ -93,6 +93,6 @@ def get_bookings():
         return [{"id":r[0],"name":r[1],"phone":r[2],"place":r[3],"date":r[4],"time":r[5],"master":r[6]} for r in cur.fetchall()]
 
 # Роли по TG ID (замени на свои)
-ADMIN_TG_IDS = [123456789]  # ТВОИ TG ID здесь!
+ADMIN_TG_IDS = [60973352]  # ТВОИ TG ID здесь!
 def is_admin(telegram_id):
     return telegram_id in ADMIN_TG_IDS
