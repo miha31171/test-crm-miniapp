@@ -34,6 +34,22 @@ def init_db():
         """)
         conn.commit()
 
+
+# ТЕСТОВЫЕ СЛОТЫ (удали потом)
+def add_test_slots():
+    masters = get_masters()
+    if masters:
+        master_id = masters[0]['id']  # Первый мастер
+        test_slots = [
+            ('2026-01-15', '14:00'), ('2026-01-15', '15:00'),
+            ('2026-01-16', '12:00'), ('2026-01-16', '17:00')
+        ]
+        for date, time in test_slots:
+            add_slot(master_id, date, time)
+        print("✅ Тестовые слоты добавлены!")
+
+add_test_slots()  # Выполнится при запуске
+
 def add_master(name, telegram_id):
     with closing(sqlite3.connect(DB_PATH)) as conn:
         cur = conn.cursor()
