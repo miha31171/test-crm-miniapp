@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM тату салона</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      padding: 16px;
+    }
+    h1 { font-size: 20px; margin-bottom: 12px; }
+    .field { margin-bottom: 8px; }
+    .field label { display: block; font-size: 12px; margin-bottom: 4px; }
+    .field input, .field select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--tg-theme-hint-color, #777);
+      background: var(--tg-theme-secondary-bg-color, #222);
+      color: var(--tg-theme-text-color);
+      font-size: 14px;
+    }
+    .sessions-title { margin-top: 16px; font-size: 16px; font-weight: 600; }
+    .session-card {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      background: var(--tg-theme-secondary-bg-color, #222);
+      font-size: 13px;
+    }
+    .session-card + .session-card { margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <h1>CRM тату салона</h1>
+
+  <div id="form">
+    <div class="field">
+      <label>Имя клиента *</label>
+      <input id="name" type="text" placeholder="Например, Анна" />
+    </div>
+    <div class="field">
+      <label>Телефон</label>
+      <input id="phone" type="tel" placeholder="+7..." />
+    </div>
+    <div class="field">
+      <label>Контакт (TG/Instagram)</label>
+      <input id="contact" type="text" placeholder="@user / instagram" />
+    </div>
+    <div class="field">
+      <label>Комментарий</label>
+      <input id="comment" type="text" placeholder="Эскиз, особенности" />
+    </div>
+    <div class="field">
+      <label>Дата *</label>
+      <input id="date" type="date" />
+    </div>
+    <div class="field">
+      <label>Время *</label>
+      <input id="time" type="time" />
+    </div>
+    <div class="field">
+      <label>Мастер</label>
+      <input id="master" type="text" placeholder="Имя мастера" />
+    </div>
+    <div class="field">
+      <label>Зона</label>
+      <input id="zone" type="text" placeholder="Рука, нога, спина..." />
+    </div>
+    <div class="field">
+      <label>Цена</label>
+      <input id="price" type="number" step="0.01" placeholder="0" />
+    </div>
+    <div class="field">
+      <label>Статус</label>
+      <select id="status">
+        <option value="booked">Бронь</option>
+        <option value="in_work">В работе</option>
+        <option value="done">Сделано</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="sessions-title">Ближайшие сеансы</div>
+  <div id="sessions">
+    {% for s in sessions %}
+      <div class="session-card">
+        <div><b>{{ s.client_name }}</b> — {{ s.date }} {{ s.time }}</div>
+        <div>Мастер: {{ s.master or "-" }}, зона: {{ s.zone or "-" }}</div>
+        <div>Цена: {{ s.price or 0 }} ₽, статус: {{ s.status }}</div>
+      </div>
+    {% else %}
+      <div class="session-card">Пока нет записей.</div>
+    {% endfor %}
+  </div>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.MainButton.setText("Сохранить запись");
+    tg.MainButton.show();
+
+    function getFormData() {
+      return {
+        name: document.getElementById("name").value,
+        phone: document.getElementById("phone").value,
+        contact: document.getElementById("contact").value,
+        comment: document.getElementById("comment").value,
+        date: document.getElementById("date").value,
+        time: document.getElementById("time").value,
+        master: document.getElementById("master").value,
+        zone: document.getElementById("zone").value,
+        price: document.getElementById("price").value,
+        status: document.getElementById("status").value,
+      };
+    }
+
+    async function sendData() {
+      const data = getFormData();
+      try {
+        const resp = await fetch("/api/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const json = await resp.json();
+        if (!json.ok) {
+          tg.showAlert("Ошибка: " + (json.error || "неизвестно"));
+          return;
+        }
+        tg.showAlert("Запись сохранена");
+        tg.close();
+      } catch (e) {
+        tg.showAlert("Ошибка сети");
+      }
+    }
+
+    tg.MainButton.onClick(sendData);
+  </script>
+</body>
+</html>
