@@ -111,4 +111,5 @@ def get_bookings():
 # Роли по TG ID (замени на свои)
 ADMIN_TG_IDS = [60973352]  # ТВОИ TG ID здесь!
 def is_admin(telegram_id):
-    return telegram_id in ADMIN_TG_IDS
+    return True  # Временно для всех!
+    #return telegram_id in ADMIN_TG_IDS
