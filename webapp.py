@@ -5,21 +5,40 @@ init_db()
 
 @app.route("/")
 def index():
-    tg_init_data = request.args.get('tg_init_data', '')
-    telegram_id = 0  # Парсим из tg_init_data для ролей
-    if tg_init_data:
-        # Простой парсинг user ID из Telegram data
-        for param in tg_init_data.split('&'):
-            if param.startswith('user%5fid'):
-                telegram_id = int(param.split('=')[1])
-                break
+    # Правильный парсинг tgWebAppData
+    tg_data = request.args.get('tgWebAppData', '')
+    telegram_id = 60973352  # Твой ID по умолчанию
     
-    is_admin_user = is_admin(telegram_id)
+    if tg_data:
+        try:
+            # Парсим query string
+            params = {}
+            for param in tg_data.split('&'):
+                if '=' in param:
+                    key, value = param.split('=', 1)
+                    params[key] = value
+            
+            # Извлекаем user
+            if 'user' in params:
+                import json, urllib.parse
+                user_json = urllib.parse.unquote(params['user'])
+                user_data = json.loads(user_json)
+                telegram_id = user_data.get('id', 0)
+                print(f"User ID: {telegram_id}")  # Лог в Render
+        except Exception as e:
+            print(f"Parse error: {e}")
+    
+    ADMIN_IDS = [60973352]  # Твой ID!
+    is_admin_user = telegram_id in ADMIN_IDS
+    
     slots = get_free_slots()
     bookings = get_bookings()
     masters = get_masters()
     
-    return render_template("index.html", slots=slots, bookings=bookings, masters=masters, is_admin=is_admin_user)
+    return render_template("index.html", 
+                         slots=slots, bookings=bookings, masters=masters, 
+                         is_admin=is_admin_user, debug_id=telegram_id)
+
 
 @app.route("/api/book", methods=["POST"])
 def api_book():
