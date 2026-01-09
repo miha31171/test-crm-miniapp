@@ -35,21 +35,6 @@ def init_db():
         conn.commit()
 
 
-# ТЕСТОВЫЕ СЛОТЫ (удали потом)
-def add_test_slots():
-    masters = get_masters()
-    if masters:
-        master_id = masters[0]['id']  # Первый мастер
-        test_slots = [
-            ('2026-01-15', '14:00'), ('2026-01-15', '15:00'),
-            ('2026-01-16', '12:00'), ('2026-01-16', '17:00')
-        ]
-        for date, time in test_slots:
-            add_slot(master_id, date, time)
-        print("✅ Тестовые слоты добавлены!")
-
-add_test_slots()  # Выполнится при запуске
-
 def add_master(name, telegram_id):
     with closing(sqlite3.connect(DB_PATH)) as conn:
         cur = conn.cursor()
@@ -107,6 +92,23 @@ def get_bookings():
             ORDER BY b.created_at DESC LIMIT 50
         """)
         return [{"id":r[0],"name":r[1],"phone":r[2],"place":r[3],"date":r[4],"time":r[5],"master":r[6]} for r in cur.fetchall()]
+
+
+# ТЕСТОВЫЕ СЛОТЫ (удали потом)
+def add_test_slots():
+    masters = get_masters()
+    if masters:
+        master_id = masters[0]['id']  # Первый мастер
+        test_slots = [
+            ('2026-01-15', '14:00'), ('2026-01-15', '15:00'),
+            ('2026-01-16', '12:00'), ('2026-01-16', '17:00')
+        ]
+        for date, time in test_slots:
+            add_slot(master_id, date, time)
+        print("✅ Тестовые слоты добавлены!")
+
+add_test_slots()  # Выполнится при запуске
+
 
 # Роли по TG ID (замени на свои)
 ADMIN_TG_IDS = [60973352]  # ТВОИ TG ID здесь!
