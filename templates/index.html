@@ -1,146 +1,124 @@
 <!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CRM тату салона</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: system-ui, sans-serif;
-      background: var(--tg-theme-bg-color);
-      color: var(--tg-theme-text-color);
-      padding: 16px;
-    }
-    h1 { font-size: 20px; margin-bottom: 12px; }
-    .field { margin-bottom: 8px; }
-    .field label { display: block; font-size: 12px; margin-bottom: 4px; }
-    .field input, .field select {
-      width: 100%;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid var(--tg-theme-hint-color, #777);
-      background: var(--tg-theme-secondary-bg-color, #222);
-      color: var(--tg-theme-text-color);
-      font-size: 14px;
-    }
-    .sessions-title { margin-top: 16px; font-size: 16px; font-weight: 600; }
-    .session-card {
-      margin-top: 8px;
-      padding: 8px;
-      border-radius: 8px;
-      background: var(--tg-theme-secondary-bg-color, #222);
-      font-size: 13px;
-    }
-    .session-card + .session-card { margin-top: 6px; }
-  </style>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>🎨 CRM Тату</title>
+<style>
+body{font-family:system-ui;background:var(--tg-theme-bg-color);color:var(--tg-theme-text-color);padding:16px}
+h1,h2{font-size:20px;margin:16px 0 8px}
+input,select{width:100%;padding:12px;margin:4px 0;border-radius:8px;border:1px solid var(--tg-theme-hint-color);background:var(--tg-theme-secondary-bg-color)}
+button{width:100%;padding:12px;background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color);border:none;border-radius:8px;font-weight:600;margin:8px 0}
+.booking{background:var(--tg-theme-secondary-bg-color);padding:12px;border-radius:8px;margin:8px 0}
+.hidden{display:none}
+#slots-list{max-height:200px;overflow:auto}
+</style>
 </head>
 <body>
-  <h1>CRM тату салона</h1>
+<h1>🎨 CRM Тату Салон</h1>
 
-  <div id="form">
-    <div class="field">
-      <label>Имя клиента *</label>
-      <input id="name" type="text" placeholder="Например, Анна" />
-    </div>
-    <div class="field">
-      <label>Телефон</label>
-      <input id="phone" type="tel" placeholder="+7..." />
-    </div>
-    <div class="field">
-      <label>Контакт (TG/Instagram)</label>
-      <input id="contact" type="text" placeholder="@user / instagram" />
-    </div>
-    <div class="field">
-      <label>Комментарий</label>
-      <input id="comment" type="text" placeholder="Эскиз, особенности" />
-    </div>
-    <div class="field">
-      <label>Дата *</label>
-      <input id="date" type="date" />
-    </div>
-    <div class="field">
-      <label>Время *</label>
-      <input id="time" type="time" />
-    </div>
-    <div class="field">
-      <label>Мастер</label>
-      <input id="master" type="text" placeholder="Имя мастера" />
-    </div>
-    <div class="field">
-      <label>Зона</label>
-      <input id="zone" type="text" placeholder="Рука, нога, спина..." />
-    </div>
-    <div class="field">
-      <label>Цена</label>
-      <input id="price" type="number" step="0.01" placeholder="0" />
-    </div>
-    <div class="field">
-      <label>Статус</label>
-      <select id="status">
-        <option value="booked">Бронь</option>
-        <option value="in_work">В работе</option>
-        <option value="done">Сделано</option>
-      </select>
-    </div>
+<!-- Клиентская форма записи -->
+<div>
+<h2>📅 Записаться</h2>
+<select id="slot" style="font-size:16px">
+  <option>Выберите свободный слот</option>
+  {% for slot in slots %}
+  <option value="{{ slot.id }}" data-master="{{ slot.master }}" data-date="{{ slot.date }}" data-time="{{ slot.time }}">
+    {{ slot.master }}: {{ slot.date }} {{ slot.time }}
+  </option>
+  {% endfor %}
+</select>
+<input id="name" placeholder="Имя клиента">
+<input id="phone" placeholder="Телефон">
+<input id="place" placeholder="Место тату (рука, нога, спина...)">
+<button onclick="book()">Записаться</button>
+</div>
+
+{% if is_admin %}
+<!-- Админка -->
+<div class="admin-section">
+<h2>⚙️ Админка (мастер)</h2>
+
+<h3>Добавить мастера</h3>
+<input id="master_name" placeholder="Имя мастера">
+<input id="master_tg" placeholder="Telegram ID" type="number">
+<button onclick="addMaster()">Добавить</button>
+
+<h3>Добавить слот</h3>
+<select id="master_select">
+  {% for m in masters %}
+  <option value="{{ m.id }}">{{ m.name }}</option>
+  {% endfor %}
+</select>
+<input id="slot_date" type="date">
+<input id="slot_time" type="time">
+<button onclick="addSlot()">Создать слот</button>
+</div>
+{% endif %}
+
+<!-- Все записи -->
+<h2>📋 Записи</h2>
+<div id="bookings-list">
+  {% for b in bookings %}
+  <div class="booking">
+    {{ b.name }} | {{ b.phone }} | {{ b.place }}<br>
+    <small>{{ b.master }} {{ b.date }} {{ b.time }}</small>
   </div>
+  {% endfor %}
+</div>
 
-  <div class="sessions-title">Ближайшие сеансы</div>
-  <div id="sessions">
-    {% for s in sessions %}
-      <div class="session-card">
-        <div><b>{{ s.client_name }}</b> — {{ s.date }} {{ s.time }}</div>
-        <div>Мастер: {{ s.master or "-" }}, зона: {{ s.zone or "-" }}</div>
-        <div>Цена: {{ s.price or 0 }} ₽, статус: {{ s.status }}</div>
-      </div>
-    {% else %}
-      <div class="session-card">Пока нет записей.</div>
-    {% endfor %}
-  </div>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+const tg = window.Telegram.WebApp;
+tg.expand();
+tg.MainButton.setText("Обновить").show().onClick(()=>location.reload());
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.MainButton.setText("Сохранить запись");
-    tg.MainButton.show();
+async function book() {
+  const slotId = document.getElementById('slot').value;
+  const name = document.getElementById('name').value;
+  const phone = document.getElementById('phone').value;
+  const place = document.getElementById('place').value;
+  
+  if(!slotId || !name || !phone || !place) {
+    tg.showAlert("Заполните все поля!");
+    return;
+  }
+  
+  const res = await fetch('/api/book', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({slot_id: slotId, name, phone, place})
+  });
+  const data = await res.json();
+  
+  tg.showAlert(data.ok ? data.message : data.error);
+  if(data.ok) location.reload();
+}
 
-    function getFormData() {
-      return {
-        name: document.getElementById("name").value,
-        phone: document.getElementById("phone").value,
-        contact: document.getElementById("contact").value,
-        comment: document.getElementById("comment").value,
-        date: document.getElementById("date").value,
-        time: document.getElementById("time").value,
-        master: document.getElementById("master").value,
-        zone: document.getElementById("zone").value,
-        price: document.getElementById("price").value,
-        status: document.getElementById("status").value,
-      };
-    }
+async function addSlot() {
+  const masterId = document.getElementById('master_select').value;
+  const date = document.getElementById('slot_date').value;
+  const time = document.getElementById('slot_time').value;
+  
+  await fetch('/api/add_slot', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({master_id: masterId, date, time})
+  });
+  tg.showAlert("✅ Слот создан!");
+  location.reload();
+}
 
-    async function sendData() {
-      const data = getFormData();
-      try {
-        const resp = await fetch("/api/create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-        const json = await resp.json();
-        if (!json.ok) {
-          tg.showAlert("Ошибка: " + (json.error || "неизвестно"));
-          return;
-        }
-        tg.showAlert("Запись сохранена");
-        tg.close();
-      } catch (e) {
-        tg.showAlert("Ошибка сети");
-      }
-    }
-
-    tg.MainButton.onClick(sendData);
-  </script>
-</body>
-</html>
+async function addMaster() {
+  const name = document.getElementById('master_name').value;
+  const tgId = document.getElementById('master_tg').value;
+  
+  await fetch('/api/add_master', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name, telegram_id: tgId})
+  });
+  tg.showAlert("✅ Мастер добавлен!");
+  location.reload();
+}
+</script>
+</body></html>

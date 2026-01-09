@@ -1,38 +1,45 @@
-
-# webapp.py
 from flask import Flask, render_template, request, jsonify
-from crm_db import init_db, add_client, add_session, get_upcoming_sessions
-
+from crm_db import *
 app = Flask(__name__)
 init_db()
 
 @app.route("/")
 def index():
-    sessions = get_upcoming_sessions()
-    return render_template("index.html", sessions=sessions)
-
-@app.route("/api/create", methods=["POST"])
-def api_create():
-    data = request.json or {}
-    name = data.get("name", "").strip()
-    phone = data.get("phone", "").strip()
-    contact = data.get("contact", "").strip()
-    comment = data.get("comment", "").strip()
-    date = data.get("date", "").strip()
-    time = data.get("time", "").strip()
-    master = data.get("master", "").strip()
-    zone = data.get("zone", "").strip()
-    price = float(data.get("price") or 0)
-    status = data.get("status", "booked")
-
-    if not name or not date or not time:
-        return jsonify({"ok": False, "error": "Имя, дата и время обязательны"}), 400
-
-    client_id = add_client(name, phone, contact, comment)
-    session_id = add_session(client_id, date, time, master, zone, price, status)
-
-    return jsonify({"ok": True, "session_id": session_id})
+    tg_init_data = request.args.get('tg_init_data', '')
+    telegram_id = 0  # Парсим из tg_init_data для ролей
+    if tg_init_data:
+        # Простой парсинг user ID из Telegram data
+        for param in tg_init_data.split('&'):
+            if param.startswith('user%5fid'):
+                telegram_id = int(param.split('=')[1])
+                break
     
+    is_admin_user = is_admin(telegram_id)
+    slots = get_free_slots()
+    bookings = get_bookings()
+    masters = get_masters()
+    
+    return render_template("index.html", slots=slots, bookings=bookings, masters=masters, is_admin=is_admin_user)
+
+@app.route("/api/book", methods=["POST"])
+def api_book():
+    data = request.json
+    if book_slot(data['slot_id']):
+        create_booking(data['slot_id'], data['name'], data['phone'], data['place'])
+        return jsonify({"ok": True, "message": "✅ Запись создана!"})
+    return jsonify({"ok": False, "error": "❌ Слот занят"}), 400
+
+@app.route("/api/add_slot", methods=["POST"])
+def api_add_slot():
+    data = request.json
+    add_slot(data['master_id'], data['date'], data['time'])
+    return jsonify({"ok": True})
+
+@app.route("/api/add_master", methods=["POST"])
+def api_add_master():
+    data = request.json
+    add_master(data['name'], data['telegram_id'])
+    return jsonify({"ok": True})
+
 if __name__ == "__main__":
-    # Локальный запуск Mini App
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000)

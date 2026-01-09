@@ -1,5 +1,5 @@
-# crm_db.py
 import sqlite3
+from datetime import datetime
 from contextlib import closing
 
 DB_PATH = "crm.db"
@@ -7,69 +7,92 @@ DB_PATH = "crm.db"
 def init_db():
     with closing(sqlite3.connect(DB_PATH)) as conn:
         cur = conn.cursor()
+        # Мастера
+        cur.execute("CREATE TABLE IF NOT EXISTS masters (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, telegram_id INTEGER)")
+        # Свободные слоты (мастер создаёт)
         cur.execute("""
-        CREATE TABLE IF NOT EXISTS clients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            phone TEXT,
-            contact TEXT,
-            comment TEXT
-        )
+            CREATE TABLE IF NOT EXISTS slots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                master_id INTEGER,
+                date TEXT NOT NULL,
+                time TEXT NOT NULL,
+                status TEXT DEFAULT 'free',
+                FOREIGN KEY(master_id) REFERENCES masters(id)
+            )
         """)
+        # Записи клиентов
         cur.execute("""
-        CREATE TABLE IF NOT EXISTS sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            client_id INTEGER NOT NULL,
-            date TEXT NOT NULL,
-            time TEXT NOT NULL,
-            master TEXT,
-            zone TEXT,
-            price REAL,
-            status TEXT,
-            FOREIGN KEY (client_id) REFERENCES clients (id)
-        )
+            CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slot_id INTEGER NOT NULL,
+                client_name TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                place TEXT NOT NULL,
+                created_at TEXT,
+                FOREIGN KEY(slot_id) REFERENCES slots(id)
+            )
         """)
         conn.commit()
 
-def add_client(name, phone, contact, comment):
+def add_master(name, telegram_id):
     with closing(sqlite3.connect(DB_PATH)) as conn:
         cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO clients (name, phone, contact, comment) VALUES (?, ?, ?, ?)",
-            (name, phone, contact, comment),
-        )
+        cur.execute("INSERT INTO masters (name, telegram_id) VALUES (?, ?)", (name, telegram_id))
         conn.commit()
         return cur.lastrowid
 
-def add_session(client_id, date, time, master, zone, price, status):
+def get_masters():
     with closing(sqlite3.connect(DB_PATH)) as conn:
         cur = conn.cursor()
-        cur.execute(
-            """INSERT INTO sessions
-               (client_id, date, time, master, zone, price, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (client_id, date, time, master, zone, price, status),
-        )
+        cur.execute("SELECT id, name FROM masters")
+        return [{"id":r[0], "name":r[1]} for r in cur.fetchall()]
+
+def add_slot(master_id, date, time):
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        cur = conn.cursor()
+        cur.execute("INSERT INTO slots (master_id, date, time) VALUES (?, ?, ?)", (master_id, date, time))
         conn.commit()
         return cur.lastrowid
 
-def get_upcoming_sessions(limit=20):
+def get_free_slots():
     with closing(sqlite3.connect(DB_PATH)) as conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT s.id,
-                   c.name,
-                   s.date,
-                   s.time,
-                   s.master,
-                   s.zone,
-                   s.price,
-                   s.status
-            FROM sessions s
-            JOIN clients c ON s.client_id = c.id
+            SELECT s.id, m.name, s.date, s.time 
+            FROM slots s JOIN masters m ON s.master_id = m.id 
+            WHERE s.status = 'free'
             ORDER BY s.date, s.time
-            LIMIT ?
-        """, (limit,))
-        rows = cur.fetchall()
-        keys = ["id", "client_name", "date", "time", "master", "zone", "price", "status"]
-        return [dict(zip(keys, r)) for r in rows]
+        """)
+        return [{"id":r[0],"master":r[1],"date":r[2],"time":r[3]} for r in cur.fetchall()]
+
+def book_slot(slot_id):
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE slots SET status = 'booked' WHERE id = ? AND status = 'free'", (slot_id,))
+        return cur.rowcount > 0
+
+def create_booking(slot_id, name, phone, place):
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO bookings (slot_id, client_name, phone, place, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (slot_id, name, phone, place, datetime.now().isoformat()))
+        conn.commit()
+        return cur.lastrowid
+
+def get_bookings():
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT b.id, b.client_name, b.phone, b.place, s.date, s.time, m.name
+            FROM bookings b JOIN slots s ON b.slot_id = s.id 
+            JOIN masters m ON s.master_id = m.id
+            ORDER BY b.created_at DESC LIMIT 50
+        """)
+        return [{"id":r[0],"name":r[1],"phone":r[2],"place":r[3],"date":r[4],"time":r[5],"master":r[6]} for r in cur.fetchall()]
+
+# Роли по TG ID (замени на свои)
+ADMIN_TG_IDS = [123456789]  # ТВОИ TG ID здесь!
+def is_admin(telegram_id):
+    return telegram_id in ADMIN_TG_IDS
