@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 BOT_TOKEN = os.getenv("BOT_TOKEN") or "8533195567:AAEwvlMQZ13kGcKMFVwHA11Smh07mwy9EoY"
 
 # Укажи сюда HTTPS‑URL мини‑приложения
-WEBAPP_URL = os.getenv("WEBAPP_URL") or "https://your-domain.com/"
+WEBAPP_URL = os.getenv("WEBAPP_URL") or "https://test-crm-miniapp.onrender.com"
 
 bot = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
